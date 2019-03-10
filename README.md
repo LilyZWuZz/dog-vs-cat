@@ -42,6 +42,7 @@ cat.10004.jpg
 [作者说明](https://medium.com/@vijayabhaskar96/tutorial-on-keras-imagedatagenerator-with-flow-from-dataframe-8bd5776e45c1)。
 dataframe里的文件如果不在一个目录下，文件名称需要使用绝对路径。
 如果dataframe文件名称是'cat/cat.0.jpg','dog/dog.0.jpg'，无法找到文件。
+
 ```
 └── train2
     ├── cat [12500 images]
@@ -50,8 +51,11 @@ dataframe里的文件如果不在一个目录下，文件名称需要使用绝�
 
 由于原始文件无法保存在colab虚机上，只能保存在driver上。google drive上解压数据非常慢。下面的代码是将数据从drive拷贝到虚机上再解压。
 
-```py
+```
 !cp "drive/My Drive/Colab Notebooks/all.zip" "all.zip"
+```
+
+```py
 import os
 import zipfile
 
@@ -69,8 +73,10 @@ local_zip = '/tmp/test1.zip'
 zip_ref = zipfile.ZipFile(local_zip, 'r')
 zip_ref.extractall('/tmp/cat_dog_data')
 zip_ref.close()
-!ls "/tmp/cat_dog_data"
+```
 
+```
+!ls "/tmp/cat_dog_data"
 test1  train
 ```
 
@@ -131,36 +137,6 @@ gen_bottleneck(model, bottleneck_path+'incept/')
 * [Inception v3](https://arxiv.org/abs/1512.00567) 15.12
 * [Xception](https://arxiv.org/abs/1610.02357) 16.10
 
-# 载入特征向量
-
-经过上面的代码以后，我们获得了三个特征向量文件，分别是：
-
-* gap_ResNet50.h5
-* gap_InceptionV3.h5
-* gap_Xception.h5
-
-我们需要载入这些特征向量，并且将它们合成一条特征向量，然后记得把 X 和 y 打乱，不然之后我们设置`validation_split`的时候会出问题。这里设置了 numpy 的随机数种子为2017，这样可以确保每个人跑这个代码，输出都能是一样的结果。
-
-```py
-import h5py
-import numpy as np
-from sklearn.utils import shuffle
-np.random.seed(2017)
-
-X_train = []
-X_test = []
-
-for filename in ["gap_ResNet50.h5", "gap_Xception.h5", "gap_InceptionV3.h5"]:
-    with h5py.File(filename, 'r') as h:
-        X_train.append(np.array(h['train']))
-        X_test.append(np.array(h['test']))
-        y_train = np.array(h['label'])
-
-X_train = np.concatenate(X_train, axis=1)
-X_test = np.concatenate(X_test, axis=1)
-
-X_train, y_train = shuffle(X_train, y_train)
-```
 
 # 构建模型
 
@@ -212,7 +188,9 @@ train_pred_1 = model.predict(train_data)
 test_pred_1 = model.predict(test_data)
 save_result(os.path.join(weight_path,'xcept_test.csv'),test_pred_1,'')
 save_result(os.path.join(weight_path,'xcept_train.csv'),train_pred_1,train_data)
+```
 
+```
 Train on 20000 samples, validate on 5000 samples
 Epoch 1/100
 20000/20000 [==============================] - 1s 52us/step - loss: 0.1272 - acc: 0.9751 - val_loss: 0.0422 - val_acc: 0.9916
@@ -315,9 +293,7 @@ predictions = predictions.clip(min=0.005, max=0.995)
 save_result(os.path.join(weight_path,'tune.csv'),predictions)
 ```
 
-预测这里我们用到了一个小技巧，我们将每个预测值限制到了 [0.005, 0.995] 个区间内，这个原因很简单，kaggle 官方的评估标准是 [LogLoss](https://www.kaggle.com/c/dogs-vs-cats-redux-kernels-edition/details/evaluation)，对于预测正确的样本，0.995 和 1 相差无几，但是对于预测错误的样本，0 和 0.005 的差距非常大，是 15 和 2 的差别。参考 [LogLoss 如何处理无穷大问题](https://www.kaggle.com/wiki/LogLoss)，下面的表达式就是二分类问题的 LogLoss 定义。
-
-$$\textrm{LogLoss} = - \frac{1}{n} \sum_{i=1}^n \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i)\right]$$
+预测这里我们用到了一个小技巧，我们将每个预测值限制到了 [0.005, 0.995] 个区间内，这个原因很简单，kaggle 官方的评估标准是 [LogLoss](https://www.kaggle.com/c/dogs-vs-cats-redux-kernels-edition/details/evaluation)，对于预测正确的样本，0.995 和 1 相差无几，但是对于预测错误的样本，0 和 0.005 的差距非常大，是 15 和 2 的差别。参考 [LogLoss 如何处理无穷大问题](https://www.kaggle.com/wiki/LogLoss)。
 
 
 # 总结
